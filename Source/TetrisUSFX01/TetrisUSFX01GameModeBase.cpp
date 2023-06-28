@@ -3,6 +3,7 @@
 
 #include "TetrisUSFX01GameModeBase.h"
 #include "Board.h"
+#include "Piece.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
@@ -18,18 +19,9 @@ void ATetrisUSFX01GameModeBase::BeginPlay()
 {
     // Call the parent class version of this function
     Super::BeginPlay();
-    // Displays a red message on the screen for 10 seconds
-    //GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, TEXT("Spawning un Block"));
-    // Spawn an instance of the AMyFirstActor class at the
-    //default location.
-    /*FTransform SpawnLocation;
-    SpawnedActor = GetWorld()->SpawnActor<ABlock>(ABlock::StaticClass(), SpawnLocation);
-    SpawnedActor->SetActorRelativeLocation(FVector(0.0, 0.0, 0.0));
-
-    GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, TEXT("Spawning un Piece"));
-    SpawnedPiece = GetWorld()->SpawnActor<APiece>(APiece::StaticClass(), SpawnLocation);
-    SpawnedPiece->SetActorRelativeLocation(FVector(0.0, 100.0, 0.0));
-    SpawnedPiece->SpawnBlocks();*/
+   
+    //GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Purple, TEXT("MY PRIMER MENSAJE"));
+    mensaje->mensaje();
 
     for (TActorIterator<ACameraActor> it(GetWorld()); it; ++it)
     {
@@ -41,20 +33,6 @@ void ATetrisUSFX01GameModeBase::BeginPlay()
             break;
         }
     }
-
-    //Create 4 Inventory
-    for (int i = 0; i <= 1; i++)
-    {
-        ABoard* Mi_Board = GetWorld() -> SpawnActor<ABoard>(ABoard::StaticClass());
-        if (Mi_Board)
-        {
-            //If the Spawn succeeds, set the Spawned inventory to the local one and log the success string
-                Board = Mi_Board;
-                //GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Yellow,FString::Printf(TEXT("%s Mi Board esta creado"),*Board->GetName()));
-        }
-    }
-
-
 }
 
 // Called every frame

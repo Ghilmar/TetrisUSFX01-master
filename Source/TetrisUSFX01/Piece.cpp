@@ -6,10 +6,27 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include <vector>
+#include <chrono> 
+#include <thread>
 
+
+//APiece* APiece::Instance = nullptr;
 // Sets default values
-APiece::APiece()
+
+APiece:: APiece()
 {
+    //TArray<AActor*> cantidad;
+    //UGameplayStatics::GetAllActorsOfClass(GetWorld(), APiece::StaticClass(), cantidad);
+    //if (cantidad.Num() > 1)
+    //    {
+    //        //If exist at least one of them, set the instance with the first found one
+    //        Instance = Cast<APiece>(cantidad[0]);
+    //        GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Yellow,FString::Printf(TEXT("%s ya existe el board"),*Instance->GetName()));
+    //        //Then Destroy this Actor
+    //        Destroy();
+    //    }
+
+    
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -51,7 +68,7 @@ APiece::APiece()
 void APiece::BeginPlay()
 {
 	Super::BeginPlay();
-    SpawnBlocks();
+    SpawnBlocks();     
 }
 
 // Called every frame
@@ -61,18 +78,23 @@ void APiece::Tick(float DeltaTime)
 
 }
 
+
+
 void APiece::SpawnBlocks()
 {
     std::vector<std::vector<std::pair<float, float>>> Shapes =
     {
         {{-20.0, 0.0}, {-10.0, 0.0}, {0.0, 0.0}, {10.0, 0.0}},
+             {{-20.0, 0.0}, {-10.0, 0.0}, {0.0, 0.0}, {10.0, 0.0}},
+                  {{-20.0, 0.0}, {-10.0, 0.0}, {0.0, 0.0}, {10.0, 0.0}},
+                      
         {{0.0, 10.0}, {0.0, 0.0}, {10.0, 0.0}, {20.0, 0.0}},
         {{-20.0, 0.0}, {-10.0, 0.0}, {0.0, 0.0}, {0.0, 10.0}},
-        {{0.0, 0.0}, {10.0, 0.0}, {0.0, -10.0}, {10.0, -10.0}},
-        {{-10.0, -10.0}, {0.0, -10.0}, {0.0, 0.0}, {10.0, 0.0}},
-        {{-10.0, 0.0}, {0.0, 0.0}, {0.0, 10.0}, {10.0, 0.0}},
-        //{{-10.0, 0.0}, {0.0, 0.0}, {0.0, -10.0}, {10.0, -10.0}},
-        {{-20.0, 10.0}, {-10.0, 0.0}, {0.0, 10.0}, {10.0, 0.0}},
+        {{0.0, 0.0}, {10.0, 0.0}, {0.0, -10.0}, {10.0, -10.0},{10.0, -20.0}, {10.0, -30.0}},
+        //{{-10.0, -10.0}, {0.0, -10.0}, {0.0, 0.0}, {10.0, 0.0}},
+        //{{-10.0, 0.0}, {0.0, 0.0}, {0.0, 10.0}, {10.0, 0.0}},
+        ////{{-10.0, 0.0}, {0.0, 0.0}, {0.0, -10.0}, {10.0, -10.0}},
+        //{{-20.0, 10.0}, {-10.0, 0.0}, {0.0, 10.0}, {10.0, 0.0}},
     };
     const int Index = FMath::RandRange(0, Shapes.size() - 1);
     UE_LOG(LogTemp, Warning, TEXT("index=%d"), Index);
@@ -87,16 +109,39 @@ void APiece::SpawnBlocks()
         B->SetActorRelativeLocation(FVector(0.0, YZ.first, YZ.second));
     }
 }
+int32 APiece::ObtenerNumBloques() const
+{
+    int Count = 0;
+    for (const auto& Block : Blocks)
+    {
+        if (Block)
+        {
+            ++Count;
+        }
+    }
+    return Count;
+}
+
+int puntaje=0;
+int Numero_Piesas_utilizadas;
 
 void APiece::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     UE_LOG(LogTemp, Warning, TEXT("Piezas eliminadas"));
-}
 
-//void APiece::Dismiss()
-//{
-//    Blocks.Empty();
-//}
+    // Contador de piezas utilizadas
+     ++Numero_Piesas_utilizadas;  
+    UE_LOG(LogTemp, Warning, TEXT(" Numero Piesas utilizadas: %d"), Numero_Piesas_utilizadas);
+    FString MessagePi = FString::Printf(TEXT("Numero de Piezas Utilizadas: %d"), Numero_Piesas_utilizadas);
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, MessagePi);
+   
+    //puntaje aunmenta de 10 en 10
+    puntaje = puntaje + 10;
+    UE_LOG(LogTemp, Warning, TEXT("Puntaje: %d"), puntaje);
+    FString MessagePu = FString::Printf(TEXT("PUNTAJE: %d"), puntaje);
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, MessagePu);
+
+}
 
 void APiece::DrawDebugLines()
 {
@@ -129,11 +174,6 @@ void APiece::TestRotate()
         }*/
     }
 }
-
-//void APiece::EndPlay(const EEndPlayReason::Type EndPlayReason)
-//{
-//    UE_LOG(LogTemp, Warning, TEXT("Pieces Deleted"));
-//}
 
 void APiece::Dismiss()
 {
@@ -236,4 +276,33 @@ bool APiece::CheckWillCollision(std::function<FVector(FVector OldLocation)> Chan
     return false;
 }
 
+bool APiece::MoveDownSlow(bool PlaySound)
+{
+    auto MoveVectorDown = [](FVector OldVector) {
+        OldVector.Z -= 10.0f;
+        return OldVector;
+    };
+
+    if (!CheckWillCollision(MoveVectorDown))
+    {
+        FVector NewLocation = GetActorLocation();
+        NewLocation.Z -= 10;
+        SetActorLocation(NewLocation);
+
+        // Pausa de 1 segundo (1000 milisegundos)
+       // std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void APiece::mensaje() {
+    int cont = 10;
+    GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Purple, TEXT("MY PRIMER MENSAJE DESDE PIESA"));
+    
+}
 

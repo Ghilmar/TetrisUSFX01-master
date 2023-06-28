@@ -32,6 +32,8 @@ public:
 
 	UPROPERTY()
 	APiece* CurrentPiece;
+	APiece* NextPiece;
+	APiece * SubNextPiece;
 
 	void Rotate(); 
 	void MoveLeft(); 
@@ -40,6 +42,13 @@ public:
 	void NewPiece();
 	void CheckLine();
 	void MoveDownToEnd();
+
+	
+
+	//Reinicia el juego
+	void ReiniciaJuego();
+	//para que baje rapido la piesa 
+	void BajarRapido();
 
 private:
 	enum PieceStatus { PS_NOT_INITED, PS_MOVING, PS_GOT_BOTTOM };
@@ -53,5 +62,5 @@ private:
 
 
 	//PATRON SINGLETON 
-	static ABoard* Instance;
+	//static ABoard* Instance;
 };

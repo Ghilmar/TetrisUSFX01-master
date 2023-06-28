@@ -8,42 +8,14 @@
 // Sets default values
 
 
-//PATRON SINGLETON
-ABoard* ABoard::Instance = nullptr;
+
 
 ABoard:: ABoard()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+
 	PrimaryActorTick.bCanEverTick = true;
-
-
-
-
-
-    //Search for existing Instances of this class
-    TArray<AActor*> cantidad;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(),ABoard::StaticClass(), cantidad);
-    if (cantidad.Num() > 1)
-    {
-        //If exist at least one of them, set the instance with the first found one
-        Instance = Cast<ABoard>(cantidad[0]);
-        GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Yellow,FString::Printf(TEXT("%s ya existe el board"),*Instance->GetName()));
-        //Then Destroy this Actor
-        Destroy();
-    }
-
 }
 
-// PATRON SINGLETON
-//ABoard * ABoard::GetInstance() {
-//    if (Instance == nullptr) {
-//        Instance = NewObject<ABoard>();
-//        UE_LOG(LogTemp, Warning, TEXT("Objeto creado con singleton"));
-//    }
-//    return Instance;
-//}
-
-// Called when the game starts or when spawned
 void ABoard::BeginPlay()
 {
 	Super::BeginPlay();
@@ -56,6 +28,13 @@ void ABoard::BeginPlay()
             it->Destroy();
         }
     }
+    FVector NextPieceLocation(0.0f, 100.0f, 170.0f);
+    FRotator NextPieceRotation(0.0f, 0.0f, 0.0f);
+    NextPiece = GetWorld()->SpawnActor<APiece>(NextPieceLocation, NextPieceRotation);
+
+    FVector SubNextPieceLocation(0.0f, 90.0f, 140.0f);
+    FRotator SubNextPieceRotation(0.0f, 0.0f, 0.0f);
+    SubNextPiece = GetWorld()->SpawnActor<APiece>(SubNextPieceLocation, SubNextPieceRotation);
 }
 
 // Called every frame
@@ -114,6 +93,15 @@ void ABoard::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     PlayerInputComponent->BindAction("NewPiece", IE_Pressed, this, &ABoard::NewPiece);
     //PlayerInputComponent->BindAction("CheckLine", IE_Pressed, this, &ABoard::CheckLine);
 
+    // reinicia el juego 
+    PlayerInputComponent->BindAction("ReiniciaJuego", IE_Pressed, this, &ABoard::ReiniciaJuego);
+    // fin del juego
+    //PlayerInputComponent->BindAction("Fin_Juego", IE_Pressed, this, &ABoard::Fin_Juego);
+
+    // bajar rapidp la pieza
+    PlayerInputComponent->BindAction("BajarRapido", IE_Pressed, this, &ABoard::BajarRapido);
+
+
 }
 
 void ABoard::Rotate()
@@ -168,10 +156,19 @@ void ABoard::NewPiece()
         CurrentPiece->Dismiss();
         CurrentPiece->Destroy();
     }
+    CurrentPiece = NextPiece;
+    CurrentPiece->SetActorLocation(FVector(0.0f, 5.0f, 195.0f));
+    CurrentPiece->SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
 
-    FVector Location(0.0, 5.0, 195.0);
-    FRotator Rotation(0.0, 0.0, 0.0);
-    CurrentPiece = GetWorld()->SpawnActor<APiece>(Location, Rotation);
+    NextPiece = SubNextPiece;
+    NextPiece -> SetActorLocation(FVector(0.0f, 100.0f, 180.0f));
+    NextPiece -> SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
+
+    FVector NextPieceLocation(0.0f, 100.0f, 110.0f);
+    FRotator NextPieceRotation(0.0f, 0.0f, 0.0f);
+    SubNextPiece = GetWorld()->SpawnActor<APiece>(NextPieceLocation, NextPieceRotation);
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Mostramos siguiente new piece"));
+   
     bGameOver = CheckGameOver();
     if (bGameOver)
     {
@@ -181,10 +178,17 @@ void ABoard::NewPiece()
             UGameplayStatics::PlaySoundAtLocation(GetWorld(), GameOverSoundCue, GetActorLocation(), GetActorRotation());
         }*/
     }
+
+    int32 Contar_Bloques = CurrentPiece->ObtenerNumBloques();
+    //UE_LOG(LogTemp, Warning, TEXT("Número de bloques de la pieza actual: %d"), Contar_Bloques);
+    FString Message = FString::Printf(TEXT("Numero de bloques en la pieza actual: %d"), Contar_Bloques);
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
 }
 
+int conta = 0;
 void ABoard::CheckLine()
 {
+    int Count = 0; // Variable para contar las líneas eliminadas
     auto MoveDownFromLine = [this](int z) {
         FVector Location(0.0f, 0.0f, 5.0 * z + 100.0);
         FRotator Rotation(0.0f, 0.0f, 0.0f);
@@ -211,12 +215,13 @@ void ABoard::CheckLine()
     int z = 0;
     while (z < 20)
     {
+        
         FVector Location(0.0f, 0.0f, 10.0f * z + 5.0f);
         FRotator Rotation(0.0f, 0.0f, 0.0f);
         TArray<struct FOverlapResult> OutOverlaps;
         FCollisionShape CollisionShape;
         CollisionShape.SetBox(FVector(4.0f, 49.0f, 4.0f));
-        //DrawDebugBox(GetWorld(), Location, FVector(4.5f, 49.5f, 4.5f), FColor::Purple, false, 1, 0, 1);
+       // DrawDebugBox(GetWorld(), Location, FVector(4.5f, 49.5f, 4.5f), FColor::Purple, false, 1, 0, 1);
         FCollisionQueryParams Params;
         FCollisionResponseParams ResponseParam;
         bool b = GetWorld()->OverlapMultiByChannel(OutOverlaps,
@@ -226,23 +231,29 @@ void ABoard::CheckLine()
         {
             ++z;
             continue;
+    
         }
-        else // this line is full, remove the line
+        else // esta línea está llena, elimine la línea
         {
-            UE_LOG(LogTemp, Warning, TEXT("Find FULL LINE at z=%d"), z);
+          
+          
+            UE_LOG(LogTemp, Warning, TEXT("Encuentra LÍNEA COMPLETA en z=%d"), z);
+            
             for (auto&& Result : OutOverlaps)
             {
                 Result.GetActor()->Destroy();
             }
-            MoveDownFromLine(z);
-
-            /*if (LineRemoveSoundCue)
-            {
-                UGameplayStatics::PlaySoundAtLocation(GetWorld(), LineRemoveSoundCue, GetActorLocation(), GetActorRotation());
-            }*/
+          
+            MoveDownFromLine(z);  
+            Count++;
         }
+        conta = Count; // Actualizar el valor de conta con el contador de líneas eliminadas
+        FString Message = FString::Printf(TEXT("Una línea eliminada. conta: %d"), conta);
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
     }
+ 
 }
+
 
 void ABoard::MoveDownToEnd()
 {
@@ -271,6 +282,32 @@ void ABoard::MoveDownToEnd()
     default:
         UE_LOG(LogTemp, Warning, TEXT("Wrong status for MoveDownToEnd"));
         break;
+    }
+}
+
+void ABoard::ReiniciaJuego()
+{
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Q precionado"));
+    if (CurrentPiece)
+    {
+		CurrentPiece->Dismiss();
+		CurrentPiece->Destroy();
+	}
+    if (NextPiece)
+    {
+		NextPiece->Dismiss();
+		NextPiece->Destroy();
+	}
+	
+}
+
+void ABoard::BajarRapido()
+{
+   
+    if (CurrentPiece)
+    {
+        CurrentPiece->MoveDownSlow();
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Bajando rapido con Num 2"));
     }
 }
 

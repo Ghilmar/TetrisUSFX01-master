@@ -20,13 +20,15 @@ protected:
 public:
 	ATetrisUSFX01GameModeBase();
 
-	class ABoard* Board;
+	/*class ABoard* Board;
+	class ABoard* Piece;*/
 
 	UPROPERTY()
 	ABlock* SpawnedActor;
 	
 	UPROPERTY()
 	APiece* SpawnedPiece;
+	APiece* mensaje;
 
 	UFUNCTION()
 	void DestroyActorFunction();
